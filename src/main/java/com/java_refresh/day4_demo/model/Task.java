@@ -1,9 +1,6 @@
 package com.java_refresh.day4_demo.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 
 @Entity
 public class Task{
@@ -16,11 +13,16 @@ public class Task{
 
     private boolean completed;
 
+    @ManyToOne
+    @JoinColumn(name = "user_id",  nullable = false)
+    private User owner;
+
     public Task() {}
 
-    public Task(String title, boolean completed) {
+    public Task(String title, boolean completed,  User owner) {
         this.title = title;
         this.completed = completed;
+        this.owner = owner;
     }
 
     public Long getId() {
@@ -45,5 +47,13 @@ public class Task{
 
     public void setCompleted(boolean completed) {
         this.completed = completed;
+    }
+
+    public User getOwner() {
+        return owner;
+    }
+
+    public void setOwner(User owner) {
+        this.owner = owner;
     }
 }

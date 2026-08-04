@@ -39,7 +39,7 @@ public class AuthController {
             throw new UsernameAlreadyExistsException("Username already exists, please use another username");
         }
 
-        User newUser = new User(registerRequest.username(), passwordEncoder.encode(registerRequest.password()));
+        User newUser = new User(registerRequest.username(), passwordEncoder.encode(registerRequest.password()), "USER");
         userRepository.save(newUser);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(new RegisterResponseDto("Register Successfully!"));

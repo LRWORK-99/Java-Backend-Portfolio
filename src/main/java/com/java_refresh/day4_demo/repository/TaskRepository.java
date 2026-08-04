@@ -15,5 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @Repository
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
+    Page<Task> findByOwnerUsernameAndCompleted(String username, boolean completed, Pageable pageable);
+    Page<Task> findByOwnerUsername(String username, Pageable pageable);
     Page<Task> findByCompleted(boolean completed, Pageable pageable);
 }

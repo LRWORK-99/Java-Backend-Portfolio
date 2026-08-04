@@ -1,6 +1,7 @@
 package com.java_refresh.day4_demo.controller;
 
 import com.java_refresh.day4_demo.dto.TaskRequestDto;
+import com.java_refresh.day4_demo.dto.TaskResponseDto;
 import com.java_refresh.day4_demo.model.Task;
 import com.java_refresh.day4_demo.service.TaskService;
 import jakarta.validation.Valid;
@@ -9,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -24,32 +26,48 @@ public class TaskController {
         this.taskService = taskService;
     }
 
-    @GetMapping
-    public Page<Task> getAllTasks(
+    private TaskResponseDto toResponse(Task task) {
+        return new TaskResponseDto(task.getId(), task.getTitle(), task.isCompleted(), task.getOwner().getUsername());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/admin/all")
+    public Page<TaskResponseDto> adminGetAllTasks(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(required = false) Boolean completed
     ) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
-        return taskService.getAllTask(pageable, completed);
+        return taskService.getAllTaskForAdmin(pageable, completed).map(this::toResponse);
+    }
+
+    @GetMapping
+    public Page<TaskResponseDto> getAllTasks(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(required = false) Boolean completed
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy));
+        return taskService.getAllTask(pageable, completed).map(this::toResponse);
     }
 
     @GetMapping("/{id}")
-    public Task getTaskById(@PathVariable Long id) {
-        return taskService.getTaskById(id);
+    public TaskResponseDto getTaskById(@PathVariable Long id) {
+        return toResponse(taskService.getTaskById(id));
     }
 
     @PostMapping
-    public ResponseEntity<Task> saveTask(@Valid @RequestBody TaskRequestDto taskDto) {
+    public ResponseEntity<TaskResponseDto> saveTask(@Valid @RequestBody TaskRequestDto taskDto) {
         Task taskCreated = taskService.saveTask(taskDto);
         URI location = URI.create("/tasks/" + taskCreated.getId());
-        return ResponseEntity.created(location).body(taskCreated);
+        return ResponseEntity.created(location).body(toResponse(taskCreated));
     }
 
     @PutMapping("/{id}")
-    public Task updateTask(@PathVariable Long id, @Valid @RequestBody TaskRequestDto taskDto) {
-        return taskService.updateTask(id, taskDto);
+    public TaskResponseDto updateTask(@PathVariable Long id, @Valid @RequestBody TaskRequestDto taskDto) {
+        return toResponse(taskService.updateTask(id, taskDto));
     }
 
     @DeleteMapping("/{id}")
