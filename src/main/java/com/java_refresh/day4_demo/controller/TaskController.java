@@ -1,8 +1,10 @@
 package com.java_refresh.day4_demo.controller;
 
+import com.java_refresh.day4_demo.dto.SubtaskSuggestionResponseDto;
 import com.java_refresh.day4_demo.dto.TaskRequestDto;
 import com.java_refresh.day4_demo.dto.TaskResponseDto;
 import com.java_refresh.day4_demo.model.Task;
+import com.java_refresh.day4_demo.service.AiTaskAssistanceService;
 import com.java_refresh.day4_demo.service.TaskService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -21,9 +23,12 @@ public class TaskController {
 
     private final TaskService taskService;
 
+    private final AiTaskAssistanceService aiTaskAssistanceService;
+
     //constructor injection
-    public TaskController(TaskService taskService) {
+    public TaskController(TaskService taskService, AiTaskAssistanceService aiTaskAssistanceService) {
         this.taskService = taskService;
+        this.aiTaskAssistanceService = aiTaskAssistanceService;
     }
 
     private TaskResponseDto toResponse(Task task) {
@@ -74,6 +79,13 @@ public class TaskController {
     public ResponseEntity<Void> deleteTaskById(@PathVariable Long id) {
         taskService.deleteTaskById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/{id}/suggest-subtasks")
+    public SubtaskSuggestionResponseDto getSubTaskFromGemini(@PathVariable Long id){
+        Task task = taskService.getTaskById(id);
+
+        return aiTaskAssistanceService.suggestSubtasks(task);
     }
 
 }
