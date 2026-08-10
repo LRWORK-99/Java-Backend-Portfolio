@@ -62,3 +62,43 @@ The full stack (app + PostgreSQL + Redis) runs via Docker Compose — no local P
 
 ### Notes
 - Postgres data persists across restarts via a named volume. Changed `DB_PASSWORD`? Run `docker-compose down -v` to reset it.
+
+## AI Integration
+
+The API integrates with Google's Gemini API to provide AI-generated subtask suggestions for tasks.
+
+### Endpoint
+
+`POST /tasks/{id}/suggest-subtasks`
+
+Given a task's title, returns a list of AI-suggested subtasks to help break the task down into actionable steps.
+
+**Example response:**
+```json
+{
+  "subtasks": [
+    "Research options",
+    "Draft outline",
+    "Review with team"
+  ],
+  "message": null
+}
+```
+
+If the AI service is unavailable, returns no suggestions, or returns a response that can't be parsed, `subtasks` is returned as an empty list with a descriptive `message` explaining why — the endpoint never returns a raw error for these cases.
+
+### Configuration
+
+Requires a `GEMINI_API_KEY` environment variable, following the same `.env`-based secrets pattern used for `DB_PASSWORD` and `JWT_SECRET` — never hardcoded, never committed.
+
+### Notes on provider choice
+
+- Uses **Google Gemini** (`gemini-3.6-flash`) rather than a paid provider, due to Gemini AI Studio's no-cost free tier being suitable for development/testing at this project's scale.
+- Uses Gemini's `generateContent` REST endpoint, which Google now documents as the "legacy" interface in favor of a newer Interactions API. `generateContent` was retained here as a deliberate scope decision — it fully supports this feature's needs, and migrating to the newer API is a reasonable future improvement rather than a current gap.
+
+### Error handling
+
+Three failure modes are handled explicitly, each with its own fallback message rather than a generic error:
+- The API call itself fails (network/timeout/auth issue)
+- The API responds successfully but returns no usable suggestions
+- The API's response can't be parsed into the expected format
