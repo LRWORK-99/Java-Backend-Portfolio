@@ -46,11 +46,13 @@ public class AiTaskAssistanceService {
                     .retrieve()
                     .body(GeminiResponseDto.class);
         } catch (RestClientException ex) {
+            //the API call/network itself failed
             return new SubtaskSuggestionResponseDto(List.of(), "AI service unavailable, please try again later.");
         }
 
         if (geminiResponseDto == null || geminiResponseDto.candidates() == null || geminiResponseDto.candidates().isEmpty()
             || geminiResponseDto.candidates().getFirst().content().parts().isEmpty()) {
+            //call succeeded, but Gemini gave back nothing usable
             return new SubtaskSuggestionResponseDto(List.of(), "AI returned no suggestions.");
         }
 
@@ -61,10 +63,12 @@ public class AiTaskAssistanceService {
         try{
             subTasks = jsonMapper.readValue(rawText, new TypeReference<List<String>>() {});
         } catch (JacksonException ex) {
+            //Gemini's raw text wasn't valid JSON as instructed
             return new SubtaskSuggestionResponseDto(List.of(), "AI response could not be parsed.");
         }
 
         if (subTasks == null || subTasks.isEmpty()) {
+            //text parsed as JSON, but the array itself was empty
             return new SubtaskSuggestionResponseDto(List.of(), "AI returned no usable suggestions.");
         }
 
