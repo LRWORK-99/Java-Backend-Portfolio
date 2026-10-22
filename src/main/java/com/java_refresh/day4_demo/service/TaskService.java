@@ -11,6 +11,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -25,12 +26,15 @@ public class TaskService {
 
     private final UserRepository userRepository;
 
+    private final KafkaTemplate<String, String> kafkaTemplate;
+
     //private static final AtomicLong ID_GENERATOR = new AtomicLong(1);
 
     //constructor injection
-    public TaskService(TaskRepository taskRepository,  UserRepository userRepository) {
+    public TaskService(TaskRepository taskRepository,  UserRepository userRepository, KafkaTemplate<String, String> kafkaTemplate) {
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     public Page<Task> getAllTaskForAdmin(Pageable pageable, Boolean completed){
@@ -70,8 +74,10 @@ public class TaskService {
     public Task saveTask(TaskRequestDto taskDto) {
         String loggedInUsername = Objects.requireNonNull(SecurityContextHolder.getContext().getAuthentication()).getName();
         User owner = userRepository.findByUsername(loggedInUsername).orElseThrow(() -> new UserNotFoundException("No user found with username: " + loggedInUsername));
-        Task savedTask = new Task(taskDto.title(), taskDto.completed(), owner);
-        return taskRepository.save(savedTask);
+        Task newTask = new Task(taskDto.title(), taskDto.completed(), owner);
+        Task savedTask = taskRepository.save(newTask);
+        kafkaTemplate.send("task-events", String.valueOf(savedTask.getId()), savedTask.getTitle());
+        return savedTask;
     }
 
     @CacheEvict(value = "tasks", key = "#id + '-' + T(org.springframework.security.core.context.SecurityContextHolder).getContext().authentication.name")
